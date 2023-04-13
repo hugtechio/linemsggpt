@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  LINE Message with GPT.
+Globals:
+  Function:
+    Timeout: 30
+    Tracing: Active
+  Api:
+    TracingEnabled: true
+Parameters:
+  OpenApiKey:
+    Type: String
+    Default: ""
+  LineChannelToken:
+    Type: String
+    Default: ""
+Resources:
+  LineMsgGptFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lineMsgGpt/
+      Handler: app.lambdaHandler
+      Runtime: nodejs18.x
+      Architectures:
+      - arm64
+      FunctionUrlConfig:
+        AuthType: NONE
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenApiKey
+          CHANNEL_ACCESS_TOKEN: !Ref LineChannelToken 
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
+
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Ref: ApplicationResourceGroup
+      AutoConfigurationEnabled: 'true'
+Outputs:
+  LineMsgGptFunction:
+    Description: Hello World Lambda Function ARN
+    Value: !GetAtt LineMsgGptFunction.Arn
+  LineMsgGptFunctionIamRole:
+    Description: Implicit IAM Role created for Hello World function
+    Value: !GetAtt LineMsgGptFunctionRole.Arn
